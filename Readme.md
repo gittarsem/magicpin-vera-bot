@@ -1,250 +1,172 @@
 # Magicpin Vera Bot
 
-## Overview
-
-Magicpin Vera Bot is an AI-powered merchant engagement assistant developed as part of the Magicpin Backend Assignment.
-
-The bot proactively engages merchants using contextual information such as merchant, category, customer, and trigger data. It also maintains conversation history to generate intelligent follow-up responses.
+AI-powered merchant engagement assistant built using **Spring Boot** and **OpenRouter LLM** as part of the **Magicpin Backend Assignment**.
 
 ---
 
-# Tech Stack
+# Table of Contents
 
-- Java 21
-- Spring Boot 3.5
-- Maven
-- OpenRouter API (Free LLM)
-- REST APIs
-- In-Memory Storage
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
+- [Running the Project](#running-the-project)
+- [Testing](#testing)
+- [Design Decisions](#design-decisions)
+- [Future Improvements](#future-improvements)
+- [Author](#author)
+
+---
+
+# Overview
+
+Vera Bot is a RESTful backend service that intelligently engages merchants using AI-generated responses and contextual information.
+
+The bot supports:
+
+- Merchant engagement generation
+- Context management
+- Conversation memory
+- AI-powered replies
+- Smart conversation actions (`send`, `wait`, `end`)
 
 ---
 
 # Features
 
-## 1. Health Check
-
-```
-GET /v1/healthz
-```
-
-Returns application health status.
-
----
-
-## 2. Metadata
-
-```
-GET /v1/metadata
-```
-
-Returns:
-
-- Team Name
-- Team Members
-- Contact Email
-- Model Used
-- Version
+- AI-powered merchant engagement
+- Context-aware conversations
+- Merchant, Customer, Category & Trigger context support
+- Context version validation
+- Duplicate & stale version handling
+- Auto-reply detection
+- Conversation memory
+- REST APIs
+- Automated integration tests
 
 ---
 
-## 3. Context API
+# Architecture
 
+```text
+                    Merchant
+                        │
+                        ▼
+                  Spring Boot APIs
+                        │
+      ┌─────────────────┼─────────────────┐
+      ▼                 ▼                 ▼
+Context Service    Tick Service    Reply Service
+      │                 │                 │
+      └────────────┬────┴────────────┬────┘
+                   ▼                 ▼
+           Context Store     Conversation Store
+                   │
+                   ▼
+              AI Service
+                   │
+                   ▼
+           OpenRouter LLM
 ```
-POST /v1/context
-```
-
-Stores:
-
-- Merchant Context
-- Customer Context
-- Category Context
-- Trigger Context
-
-Features:
-
-- Version Validation
-- Duplicate Detection
-- Stale Version Detection
-
----
-
-## 4. Tick API
-
-```
-POST /v1/tick
-```
-
-Generates proactive merchant engagement messages using AI.
-
----
-
-## 5. Reply API
-
-```
-POST /v1/reply
-```
-
-Handles merchant replies using:
-
-- Conversation Memory
-- AI-generated responses
-- Smart conversation flow
-
-Supports three actions:
-
-- send
-- wait
-- end
-
----
-
-# AI Integration
-
-Provider
-
-OpenRouter
-
-Model
-
-```
-openrouter/free
-```
-
----
-
-# Conversation Memory
-
-Conversation history is stored using:
-
-```
-Map<String, List<String>>
-```
-
-Each conversation is identified using
-
-```
-conversationId
-```
-
-This enables context-aware conversations.
 
 ---
 
 # Project Structure
 
-```
+```text
 src
-└── main
-    ├── java
-    │   └── com.magicpin.vera_bot
-    │       ├── ai
-    │       ├── config
-    │       ├── controller
-    │       ├── dto
-    │       ├── exception
-    │       ├── model
-    │       ├── services
-    │       ├── storage
-    │       └── util
-    │
-    └── resources
-        └── application.properties
+├── main
+│   ├── controller
+│   ├── services
+│   ├── ai
+│   ├── dto
+│   ├── model
+│   ├── storage
+│   ├── config
+│   └── exception
+│
+├── resources
+│   └── application.properties
+│
+└── test
+    └── VeraBotApplicationTests.java
 ```
 
 ---
 
-# Running
+# API Endpoints
 
-Clone
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/v1/healthz` | Health Check |
+| GET | `/v1/metadata` | Bot Metadata |
+| POST | `/v1/context` | Store Context |
+| POST | `/v1/tick` | Generate Merchant Engagement |
+| POST | `/v1/reply` | Handle Merchant Reply |
+
+---
+
+# Running the Project
+
+### Clone Repository
 
 ```bash
-git clone <repository-url>
-```
-
-Move inside
-
-```bash
+git clone https://github.com/<your-username>/vera-bot.git
 cd vera-bot
 ```
 
-Configure
+### Configure
 
-```
-application.properties
-```
+Update `application.properties`
 
-```
+```properties
 openrouter.api.key=YOUR_API_KEY
 openrouter.model=openrouter/free
 ```
 
-Run
+### Run
 
 ```bash
 mvn clean spring-boot:run
 ```
 
----
+Application runs at:
 
-# Endpoints
-
-| Method | Endpoint |
-|---------|----------|
-| GET | /v1/healthz |
-| GET | /v1/metadata |
-| POST | /v1/context |
-| POST | /v1/tick |
-| POST | /v1/reply |
+```
+http://localhost:8080
+```
 
 ---
 
-# Example Flow
+# Testing
 
-Merchant Context
+Run all automated tests:
 
-↓
+```bash
+mvn test
+```
 
-Context Store
+The project includes integration tests for:
 
-↓
-
-Tick API
-
-↓
-
-Prompt Builder
-
-↓
-
-OpenRouter
-
-↓
-
-AI Response
-
-↓
-
-Merchant Reply
-
-↓
-
-Conversation Store
-
-↓
-
-Reply API
+- Health API
+- Metadata API
+- Context API
+- Version validation
+- Reply API
+- Conversation flow
 
 ---
 
 # Design Decisions
 
-- Spring Boot REST Architecture
-- Layered Design
-- DTO-based API
-- In-memory Context Store
-- Conversation Memory
-- AI Service Abstraction
-- Version Validation
+- Layered Spring Boot architecture
+- Service-oriented business logic
+- DTO-based communication
+- Global exception handling
+- AI abstraction through `AIService`
+- In-memory context & conversation storage
+- Context version management
 
 ---
 
@@ -252,17 +174,15 @@ Reply API
 
 - PostgreSQL persistence
 - Redis conversation cache
-- Streaming responses
-- Better prompt engineering
+- Scheduled follow-ups
 - Intent classification
-- Analytics dashboard
+- Streaming AI responses
 
 ---
 
 # Author
 
-Name:Tarsem Gulab
+**Tarsem Gulab**
 
-Email: work4tarsemgulab@gmail.com
-
-GitHub:https://github.com/gittarsem
+- Email: work4tarsemgulab@gmail.com
+- GitHub: https://github.com/gittarsem
