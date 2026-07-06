@@ -27,7 +27,9 @@ public class TickService {
         List<TickAction> actions = new ArrayList<>();
 
         for (MerchantContext merchant : contextStore.getMerchants().values()) {
-
+            if (merchant == null || merchant.getMerchantId() == null) {
+                continue;
+            }
             String message =
                     conversationService.generateOpeningMessage(merchant);
 
