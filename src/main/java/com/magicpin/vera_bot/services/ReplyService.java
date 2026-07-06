@@ -20,8 +20,7 @@ public class ReplyService {
 
     public ReplyResponse reply(ReplyRequest request) {
 
-        System.out.println("====================================");
-        System.out.println("Incoming Message : " + request.getMessage());
+        String message = request.getMessage().toLowerCase().trim();
 
         conversationStore.addMessage(
                 request.getConversationId(),
@@ -29,18 +28,66 @@ public class ReplyService {
                 request.getMessage()
         );
 
-        String message = request.getMessage().toLowerCase().trim();
+        /*
+         * Detect WhatsApp auto replies
+         */
 
-        System.out.println("Processed Message : " + message);
+        if (message.contains("thank you for contacting")
+                || message.contains("our team will respond")
+                || message.contains("automatic reply")
+                || message.contains("auto reply")) {
 
-        // Merchant not interested
+            int count =
+                    conversationStore.incrementAutoReply(
+                            request.getConversationId()
+                    );
+
+            if (count == 1) {
+
+                return new ReplyResponse(
+                        "send",
+                        "Looks like this is an automatic reply. When the owner is available, simply reply YES and I'll help you grow your Magicpin business.",
+                        "binary_yes_no",
+                        "Detected auto reply.",
+                        null
+                );
+
+            }
+
+            if (count == 2) {
+
+                return new ReplyResponse(
+                        "wait",
+                        null,
+                        null,
+                        "Repeated auto reply detected.",
+                        86400
+                );
+
+            }
+
+            return new ReplyResponse(
+                    "end",
+                    null,
+                    null,
+                    "Auto reply received repeatedly. Ending conversation.",
+                    null
+            );
+
+        }
+
+        conversationStore.resetAutoReply(
+                request.getConversationId()
+        );
+
+        /*
+         * Merchant not interested
+         */
+
         if (message.contains("not interested")
                 || message.contains("stop")
                 || message.contains("bye")
-                || message.equals("no")
                 || message.startsWith("no")) {
-
-            System.out.println("END CONDITION TRIGGERED");
 
             return new ReplyResponse(
                     "end",
@@ -49,14 +96,16 @@ public class ReplyService {
                     "Merchant is not interested.",
                     null
             );
+
         }
 
-        // Merchant wants later follow-up
-        if (message.contains("later")
-                || message.contains("busy")
-                || message.contains("tomorrow")) {
+        /*
+         * Merchant busy
+         */
 
-            System.out.println("WAIT CONDITION TRIGGERED");
+        if (message.contains("busy")
+                || message.contains("later")
+                || message.contains("tomorrow")) {
 
             return new ReplyResponse(
                     "wait",
@@ -65,36 +114,90 @@ public class ReplyService {
                     "Merchant requested follow-up later.",
                     86400
             );
+
         }
 
-        System.out.println("SEND CONDITION TRIGGERED");
+        /*
+         * Merchant ready
+         */
 
-        String history = conversationStore.getConversation(
-                request.getConversationId()
-        );
+        if (message.contains("yes")
+                || message.contains("let's do it")
+                || message.contains("lets do it")
+                || message.contains("go ahead")
+                || message.contains("interested")) {
 
-        String prompt = """
+            String history =
+                    conversationStore.getConversation(
+                            request.getConversationId()
+                    );
+
+            String prompt = """
 You are Vera, Magicpin's AI assistant.
 
 Conversation History:
 
 %s
 
-Merchant's latest message:
-%s
+Merchant has shown interest.
 
-Instructions:
-- Reply naturally.
-- Help the merchant.
-- Keep the reply under 80 words.
-- End with one relevant question.
-"""
-                .formatted(
-                        history,
-                        request.getMessage()
+Guide the merchant through the next onboarding step.
+
+Keep reply under 80 words.
+""".formatted(history);
+
+            String aiReply =
+                    aiService.generateMessage(prompt);
+
+            conversationStore.addMessage(
+                    request.getConversationId(),
+                    "Vera",
+                    aiReply
+            );
+
+            return new ReplyResponse(
+                    "send",
+                    aiReply,
+                    "open_ended",
+                    "Merchant interested.",
+                    null
+            );
+
+        }
+
+        /*
+         * Default AI response
+         */
+
+        String history =
+                conversationStore.getConversation(
+                        request.getConversationId()
                 );
 
-        String aiReply = aiService.generateMessage(prompt);
+        String prompt = """
+You are Vera.
+
+Conversation History:
+
+%s
+
+Reply naturally.
+
+Keep reply below 80 words.
+
+End with one question.
+""".formatted(history);
+
+        String aiReply =
+                aiService.generateMessage(prompt);
+
+        if (conversationStore.isRepeatedReply(
+                request.getConversationId(),
+                aiReply)) {
+
+            aiReply = aiReply +
+                    "\n\nWould you like me to explain this in more detail?";
+        }
 
         conversationStore.addMessage(
                 request.getConversationId(),
@@ -109,5 +212,6 @@ Instructions:
                 "Conversation aware response",
                 null
         );
+
     }
 }

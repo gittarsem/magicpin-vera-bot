@@ -20,6 +20,7 @@ public class ContextStore {
 
     private final ConcurrentHashMap<String, TriggerContext> triggers = new ConcurrentHashMap<>();
 
+
     public Map<String, CategoryContext> getCategories() {
         return categories;
     }

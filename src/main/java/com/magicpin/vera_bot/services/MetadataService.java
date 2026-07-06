@@ -17,7 +17,7 @@ public class MetadataService {
         response.setTeamMembers(List.of("Tarsem"));
         response.setModel("GPT-4.1");
         response.setApproach("LLM Context Composer");
-        response.setContactEmail("your@email.com");
+        response.setContactEmail("work4tarsemgulab@email.com");
         response.setVersion("1.0.0");
         response.setSubmittedAt(Instant.now().toString());
 
